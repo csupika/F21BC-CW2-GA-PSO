@@ -17,13 +17,16 @@ class GA:
         self.limit = limit  # Number of generations to run
         self.mutation = mutation
         self.pop_size = pop_size
-        self.population = [self.Individual(self) for _ in range(self.pop_size)]
+        self.population = [self.Individual(GA=self) for _ in range(self.pop_size)]
         self.t = t  # Tournament size for selection
 
     class Individual:
-        def __init__(self, GA):
+        def __init__(self, GA=None, individual=None):
             self.fitness = 0
-            self.individual = GA.generate_random_individual()
+            if individual is None:
+                self.individual = GA.generate_random_individual()
+                return
+            self.individual = individual
 
     def generate_random_individual(self):
         return np.random.uniform(low=self.bounds[0], high=self.bounds[1], size=self.n_dimension)
@@ -55,6 +58,9 @@ class GA:
 
         return crossed_a, crossed_b
 
+    def mutate(self, children):
+        return children
+
     def run(self):
         for x in range(self.limit):
             # Initialize the best fitness with the population's first elements fitness
@@ -71,12 +77,16 @@ class GA:
 
             new_pop = []
             for i in range(int(self.pop_size / 2)):
-                # SelectWithReplacement
+                # Select With Replacement
                 parent_a = self.tournament_selection()
                 parent_b = self.tournament_selection()
 
+                # Breeding
                 children_a, children_b = self.one_point_crossover(parent_a, parent_b)
-                print("done")
+
+                # Mutation
+                new_pop = new_pop + [self.Individual(individual=self.mutate(children_a)), self.Individual(individual=self.mutate(children_b))]
+            self.population = new_pop
 
 
 if __name__ == '__main__':
