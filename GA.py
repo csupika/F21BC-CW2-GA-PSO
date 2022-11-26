@@ -1,4 +1,5 @@
 import sys
+import time
 from copy import deepcopy
 
 import optproblems.cec2005
@@ -8,7 +9,7 @@ import random
 
 
 class GA:
-    def __init__(self, test_function, n_dimension, bounds, pop_size, num_generations=10000, t=2,
+    def __init__(self, test_function, n_dimension, bounds, pop_size, num_generations=100, t=2,
                  crossover_percentage=0.95, mutation_rate=0.8, decreasing_mutation_rate=True, elite=0):
         # ToDO:Just for testing purpose
         np.random.seed(42)
@@ -85,6 +86,7 @@ class GA:
         return children
 
     def run(self):
+        start = time.process_time()
         for generation in range(self.num_generations):
             if self.decreasing_mutation_rate:
                 self.progress = generation / self.num_generations
@@ -101,6 +103,10 @@ class GA:
             new_pop = []
             self.population = sorted(self.population, key=lambda x: x.fitness)
             best_individual = self.population[0]
+
+            if generation == self.num_generations - 1:
+                process_time = time.process_time() - start
+                return best_individual, process_time
 
             if self.elite:
                 new_pop = deepcopy(self.population[:self.elite])
@@ -130,17 +136,18 @@ class GA:
             self.population = new_pop
 
             # ToDo: Remove print
-            # print(best_individual.individual)
-            print(best_individual.fitness)
-        print("DONE")
+            # # print(best_individual.individual)
+            # print(best_individual.fitness)
 
 
-if __name__ == '__main__':
-    no_dimensions = 2
-    bound = (-100, 100)
-    pop_size = 30
-    benchmark = optproblems.cec2005.F3(no_dimensions)
-    opt = benchmark.get_optimal_solutions()
-
-    algorithm = GA(benchmark, no_dimensions, bound, pop_size, elite=1)
-    algorithm.run()
+# if __name__ == '__main__':
+#     no_dimensions = 2
+#     bound = (-100, 100)
+#     pop_size = 30
+#     benchmark = optproblems.cec2005.F3(no_dimensions)
+#     opt = benchmark.get_optimal_solutions()
+#     benchmark.evaluate(opt[0])
+#
+#     algorithm = GA(benchmark, no_dimensions, bound, pop_size)
+#     result, time = algorithm.run()
+#     print(result.fitness, " ", time)
