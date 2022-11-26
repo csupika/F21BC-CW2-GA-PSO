@@ -1,24 +1,36 @@
+import sys
+from copy import deepcopy
+
 import optproblems.cec2005
 import optproblems
 import numpy as np
 import random
 
 
-# ToDo: Use HashMap (maybe?) --> If so, then key is the population list as a tuple.
-
 class GA:
-    def __init__(self, test_function, n_dimension, bounds, pop_size, limit=100, mutation=0.1, t=2):
-        # Just for testing purpose
+    def __init__(self, test_function, n_dimension, bounds, pop_size, num_generations=10000, t=2,
+                 crossover_percentage=0.95, mutation_rate=0.8, decreasing_mutation_rate=True, elite=0):
+        # ToDO:Just for testing purpose
         np.random.seed(42)
+        random.seed(42)
+
+        if elite >= pop_size:
+            sys.exit(f"Warning! Number of elite [{elite}] must be less than the population size [{pop_size}]\n"
+                     f"Program terminated!")
 
         self.test_function = test_function
         self.n_dimension = n_dimension  # Length of array per sample. The individual's length
         self.bounds = bounds  # The domain space of the test function
-        self.limit = limit  # Number of generations to run
-        self.mutation = mutation
+        self.num_generations = num_generations  # Number of generations to run
         self.pop_size = pop_size
         self.population = [self.Individual(GA=self) for _ in range(self.pop_size)]
         self.t = t  # Tournament size for selection
+        self.crossover_percentage = crossover_percentage
+        self.mutation_rate = mutation_rate
+        self.decreasing_mutation_rate = decreasing_mutation_rate
+        if self.decreasing_mutation_rate:
+            self.progress = 0
+        self.elite = None if elite <= 0 else elite
 
     class Individual:
         def __init__(self, GA=None, individual=None):
@@ -43,8 +55,8 @@ class GA:
         # Initialize the best with the 1st index from the list
         best_per_tournament = self.population[list_of_i[0]]
         for i in range(1, len(list_of_i)):
-            next = self.population[list_of_i[i]]
-            best_per_tournament = next if next.fitness < best_per_tournament.fitness else best_per_tournament
+            next_individual = self.population[list_of_i[i]]
+            best_per_tournament = next_individual if next_individual.fitness < best_per_tournament.fitness else best_per_tournament
 
         return best_per_tournament.individual
 
@@ -59,41 +71,76 @@ class GA:
         return crossed_a, crossed_b
 
     def mutate(self, children):
+        if self.decreasing_mutation_rate:
+            mr = self.mutation_rate * (1 - self.progress)
+        else:
+            mr = self.mutation_rate
+
+        for gene in range(len(children)):
+            if np.random.random() < mr:
+                # Random value to added to the gene
+                random_value = np.random.uniform(low=self.bounds[0], high=self.bounds[1])
+                children[gene] = random_value
+
         return children
 
     def run(self):
-        for x in range(self.limit):
-            # Initialize the best fitness with the population's first elements fitness
-            self.population[0].fitness = self.assess_fitness(self.population[0].individual)
-            best_fittness = self.population[0].fitness
+        for generation in range(self.num_generations):
+            if self.decreasing_mutation_rate:
+                self.progress = generation / self.num_generations
 
-            for i in range(1, self.pop_size):
+            for i in range(self.pop_size):
                 # AssessFitness(Pi)
                 fittness = self.assess_fitness(self.population[i].individual)
                 self.population[i].fitness = fittness
-                if best_fittness > fittness:
-                    best_fittness = fittness
-                    best_genome = self.population[i]
+                # ToDo: [DOC] add that this line from the pseudo code was tweaked
+                # if best_fittness > fittness:
+                #     best_fittness = fittness
+                #     best_individual = self.population[i]
 
             new_pop = []
-            for i in range(int(self.pop_size / 2)):
+            self.population = sorted(self.population, key=lambda x: x.fitness)
+            best_individual = self.population[0]
+
+            if self.elite:
+                new_pop = deepcopy(self.population[:self.elite])
+                new_pop_to_generate = self.pop_size - self.elite
+                i_for_breeding = int(new_pop_to_generate / 2) + new_pop_to_generate % 2
+            else:
+                i_for_breeding = int(self.pop_size / 2) + self.pop_size % 2
+
+            for i in range(i_for_breeding):
                 # Select With Replacement
                 parent_a = self.tournament_selection()
                 parent_b = self.tournament_selection()
 
                 # Breeding
-                children_a, children_b = self.one_point_crossover(parent_a, parent_b)
+                if np.random.random() < self.crossover_percentage:
+                    children_a, children_b = self.one_point_crossover(parent_a, parent_b)
+                else:
+                    children_a, children_b = parent_a, parent_b
 
                 # Mutation
-                new_pop = new_pop + [self.Individual(individual=self.mutate(children_a)), self.Individual(individual=self.mutate(children_b))]
+                new_pop = new_pop + [self.Individual(individual=self.mutate(children_a)),
+                                     self.Individual(individual=self.mutate(children_b))]
+
+            while len(new_pop) > self.pop_size:
+                new_pop.pop()
+
             self.population = new_pop
+
+            # ToDo: Remove print
+            # print(best_individual.individual)
+            print(best_individual.fitness)
+        print("DONE")
 
 
 if __name__ == '__main__':
-    NO_dimensions = 10
-    bound = (-5, 5)
-    pop_size = 50
-    benchmark_f1 = optproblems.cec2005.F6(NO_dimensions)
+    no_dimensions = 2
+    bound = (-100, 100)
+    pop_size = 30
+    benchmark = optproblems.cec2005.F3(no_dimensions)
+    opt = benchmark.get_optimal_solutions()
 
-    algorithm1 = GA(benchmark_f1, NO_dimensions, bound, pop_size)
-    algorithm1.run()
+    algorithm = GA(benchmark, no_dimensions, bound, pop_size, elite=1)
+    algorithm.run()
