@@ -1,5 +1,6 @@
 import sys
 import time
+import timeit
 from copy import deepcopy
 
 import optproblems.cec2005
@@ -12,8 +13,8 @@ class GA:
     def __init__(self, test_function, n_dimension, bounds, pop_size, num_generations=100, t=2,
                  crossover_percentage=0.95, mutation_rate=0.8, decreasing_mutation_rate=True, elite=0):
         # ToDO:Just for testing purpose
-        np.random.seed(42)
-        random.seed(42)
+        # np.random.seed(42)
+        # random.seed(42)
 
         if elite >= pop_size:
             sys.exit(f"Warning! Number of elite [{elite}] must be less than the population size [{pop_size}]\n"
@@ -86,7 +87,7 @@ class GA:
         return children
 
     def run(self):
-        start = time.process_time()
+        start_time = timeit.default_timer()
         for generation in range(self.num_generations):
             if self.decreasing_mutation_rate:
                 self.progress = generation / self.num_generations
@@ -105,7 +106,8 @@ class GA:
             best_individual = self.population[0]
 
             if generation == self.num_generations - 1:
-                process_time = time.process_time() - start
+                end_time = timeit.default_timer()
+                process_time = end_time - start_time
                 return best_individual, process_time
 
             if self.elite:
@@ -140,14 +142,14 @@ class GA:
             # print(best_individual.fitness)
 
 
-# if __name__ == '__main__':
-#     no_dimensions = 2
-#     bound = (-100, 100)
-#     pop_size = 30
-#     benchmark = optproblems.cec2005.F3(no_dimensions)
-#     opt = benchmark.get_optimal_solutions()
-#     benchmark.evaluate(opt[0])
-#
-#     algorithm = GA(benchmark, no_dimensions, bound, pop_size)
-#     result, time = algorithm.run()
-#     print(result.fitness, " ", time)
+if __name__ == '__main__':
+    no_dimensions = 2
+    bound = (-100, 100)
+    pop_size = 30
+    benchmark = optproblems.cec2005.F3(no_dimensions)
+    opt = benchmark.get_optimal_solutions()
+    benchmark.evaluate(opt[0])
+
+    algorithm = GA(benchmark, no_dimensions, bound, pop_size)
+    result, time = algorithm.run()
+    print(result.fitness, " ", time)
