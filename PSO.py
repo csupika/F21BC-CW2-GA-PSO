@@ -1,9 +1,8 @@
-#PSO Particle swarm optimization 3.5 in book:
-import math
+#PSO Particle swarm optimization
+import timeit
 import random
 import optproblems
 import optproblems.cec2005
-import time
 
 #A particle consists of two parts:
 #   Location in space equivalent of genotype in evolutionary algorithms
@@ -21,7 +20,31 @@ import time
 #Code
 
 class PSO:
+    """
+    PSO algorithm with informants implementation, using CEC 2005 benchmark set for evaluation.
+    The algorithm is based on Sean Luke (2013) Essentials of Metaheuristics book.
+    """
     def __init__(self, problem, problemdimension, bounds, bounded, swarmsize, numberofinformantsperparticle, α, β, γ, δ, e):
+        """
+        Initializes a PSO algorithm.
+
+        :param problem: Problem from CEC 2005 problem collection, see here:
+        https://ls11-www.cs.tu-dortmund.de/people/swessing/optproblems/doc/cec2005.html
+        :param problemdimension: Dimension of the problem. Particle position dimension.
+        :param bounds: The corresponding bounds for the test function. Must respect the test function's defined range,
+        see here: https://ls11-www.cs.tu-dortmund.de/people/swessing/optproblems/doc/cec2005.html#test-problems,
+        this is used to initialize particles.
+        :param bounded: Is the problem bounded by bounds or are they just used to in itialise our PSO algorithm.
+        Must respect the test function's defined range, see here:
+        https://ls11-www.cs.tu-dortmund.de/people/swessing/optproblems/doc/cec2005.html#test-problems,
+        :param swarmsize: Number of particles in the swarm.
+        :param numberofinformantsperparticle: Number of informants per particle.
+        :param α: How much of the particles original velocity is retained when updating velocity.
+        :param β: how much of the particles personal best is mixed in when updating velocity.
+        :param γ: how much of the particles informants’ best is mixed in when updating velocity.
+        :param δ: how much of the global best is mixed in when updating velocity.
+        :param e: how fast the particles moves.
+        """
         self.bounded = bounded
         self.numberofinformant = numberofinformantsperparticle
         self.problemdimension = problemdimension
@@ -38,7 +61,13 @@ class PSO:
         self.e = e
 
     class Particle():
+        """
+        Object of a candidate solution. A set of particles is a swarm.
+        """
         def __init__(self, PSO):
+            """
+            Initializes a particle with a random position and velocity respecting the problem bounds and dimensions.
+            """
             self.position = PSO.generaterandomposition()
             self.velocity = PSO.generaterandomvelocity()
             self.bestposition = self.position
@@ -49,6 +78,10 @@ class PSO:
             self.informants = PSO.generaterandomindexinformant()
 
         def Determinebestinformant(self, swarm):
+            """
+              Determines which of the informants of the particle is the best according to their fitness, this includes the particle herself.
+              :param swarm: Swarm.
+            """
             informants = PSO.getinformant(self, self.informants, swarm)
             for informant in informants:
                 if (informant.fitness < self.bestinformantfitness):
@@ -61,18 +94,31 @@ class PSO:
 
 
     def AssessFitness(self, position):
+        """
+        Gives the fitness of the particler by passing down the position of the particle to the test function.
+        :param position: List of problemdimension values.
+        :return: Fitness value evaluated by the test function.
+        """
         individual = optproblems.base.Individual(position)
         self.test_function.evaluate(individual)
         return individual.objective_values
 
 
     def generaterandomposition(self):
+        """
+        Creates a random position from uniform distribution insides the problem bounds.
+        :return: Random position.
+        """
         Pos = []
         for pos in range(self.problemdimension):
             Pos.append(random.uniform(self.bounds[0], self.bounds[1]))
         return(Pos)
 
     def generaterandomvelocity(self):
+        """
+        Creates a random velocity from uniform distribution insides the problem bounds.
+        :return: Random velocity.
+        """
         Vel = []
         for pos in range(self.problemdimension):
             pos1 = random.uniform(self.bounds[0], self.bounds[1])
@@ -81,23 +127,38 @@ class PSO:
         return(Vel)
 
     def generaterandomindexinformant(self):
+        """
+        Creates a random index of number of informant size of int value inferior to the swarm size.
+        :return: An index allowing to access other particles in the swarm.
+        """
         Informant = []
         for i in range(self.numberofinformant):
             Informant.append(random.randint(0,self.swarmsize-1))
         return(Informant)
 
     def getinformant(self, informantsindex, swarm):
+        """
+        Return a list of particle accessed using an informant index.
+        :return: A list of particle.
+        """
         Informant = []
         for i in informantsindex:
             Informant.append(swarm[i])
         return (Informant)
 
-    def run(self, numberofiterations, precisionwanted):
-        start = time.process_time()
+    def run(self, maxnumberofiterations, precisionwanted):
+        """
+        Run the PSO, stops when the difference between the best fitness found and the optimal best reaches the precision wanted
+        or when the maximum number of authorized iterations is reached.
+        :param precisionwanted: Precision wanted.
+        :param maxnumberofiterations: Max number of iterations.
+        :return: The particle with the lowest (best) fitness, if the precisionwanted has been reached and the process time of the algorithm.
+        """
+        start = timeit.default_timer()
         init = True
         Fitnessb =  self.bias + precisionwanted + 1
         i = 0
-        while((self.bias + precisionwanted < Fitnessb) and i<numberofiterations):
+        while((self.bias + precisionwanted < Fitnessb) and i<maxnumberofiterations):
             i += 1
             for p in self.swarm:
                 p.fitness = self.AssessFitness(p.position)
@@ -131,47 +192,16 @@ class PSO:
                             p.position[dimension] = p.position[dimension] + self.e * p.velocity[dimension]
                     else:
                         p.position[dimension] = p.position[dimension]+self.e*p.velocity[dimension]
-        StringResult = ""
-        StringResult += "Test function: "+str(self.test_function)+", "
-        StringResult += "Dimension: "+ str(self.problemdimension)+", "
-        StringResult += "Number of iteration: "+ str(i)+", "
-        StringResult += "Solution reached: "+ str(Fitnessb)+", "
-        StringResult += "Global optimum: " + str(self.bias) + ", "
-        StringResult += "Process time: "+ str(time.process_time()-start)+", "
-        StringResult += "Parameter for best solution: "+ str(best.position)+", "
         if(Fitnessb > self.bias + precisionwanted):
-            StringResult += "Failed try augmenting the number of iteration or change the hyperparameters"
             result = False
         else:
-            StringResult += "Success"
+
             result = True
-        return(StringResult, result)
+        time = timeit.default_timer()-start
+        return(best, time, result)
 
 
 
 
 
-    #Experiment with F12 in 10 dimensions
-
-    #SwarmsizeList = [100,500,2000]
-    #NumberofinformantsperparticleList = [2,6,10]
-    #NumberofiterationsList = [20,50,100]
-    #αList = [0.1,0.4]
-    #βList = [0.4,0.8]
-    #γList = [0.4,0.8]
-    #δList = [0.4,0.8]
-    #eList = [0.8,1.2]
-    #for swarmsize in SwarmsizeList:
-    #    for numberofinformantsperparticle in NumberofinformantsperparticleList:
-    #        for numberofiterations in NumberofiterationsList:
-    #            for α in αList:
-    #                for β in βList:
-    #                    for δ in δList:
-    #                        for e in eList:
-    #                            PSO = PSO(optproblems.cec2005.F12, 10, [-3,1], swarmsize, numberofinformantsperparticle, α, β, γ, δ, e)
-    #                            result = PSO.run(numberofiterations, 0.1)
-    #                            print(result[0])
-
-    #To experiment more on hyperparameters, I recommend not using every problem and every dimension but look specifically at the evolution of one problem results to reduce computation time
-    #Studying precise example also allows to analyse why a certain set of hyperparameters are adapted to this problem according to the landscape of this problem
 
