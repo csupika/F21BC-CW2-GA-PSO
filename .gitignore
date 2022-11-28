@@ -1,2 +1,3 @@
 __pycache__/
-/df.pkl
+/data
+/df*_F*.pkl
