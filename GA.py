@@ -10,7 +10,8 @@ import random
 class GA:
     """
     Genetic Algorithm with elitism, decreasing mutation rate and tournament selection using CEC 2005 benchmark set for
-    evaluation. The algorithm is based on Sean Luke (2013) Essentials of Metaheuristics book.
+    evaluation. The algorithm is based on Sean Luke (2013) Essentials of Metaheuristics book. The algorithm searches
+    for the global minimum.
     """
     def __init__(self, test_function: optproblems.TestProblem, n_dimension: int, bounds: list[int, int], pop_size: int,
                  num_generations=100, t=2, crossover_percentage=0.95, mutation_rate=0.8, decreasing_mutation_rate=True,
@@ -27,8 +28,8 @@ class GA:
         :param num_generations: Number of generations to run.
         :param t: Tournament size. Cannot be less than 1!
         :param crossover_percentage: The probability of a crossover to happen, which gives approximately the percentage
-        when a crossover happens of two parents. Range: [0,1]
-        :param mutation_rate: Probability to change a gene in the chromosome's chromosome. Range: [0,1]
+        of crossovers of two parents. Range: [0,1]
+        :param mutation_rate: Probability to change a gene in the chromosome. Range: [0,1]
         :param decreasing_mutation_rate: If True then the program slowly decreases the mutation rate per generations. In
         the first generation the mutation rate is unchanged (mutation rate * 1), at half-point it's halved
         (mutation rate * 0.5) and near 0 for the last generation.
@@ -40,11 +41,12 @@ class GA:
             sys.exit(f"Warning! Number of elite [{elite}] must be less than the population size [{pop_size}]\n"
                      f"Program terminated!")
         if t < 1:
-            sys.exit(f"Warning! Tournament size [{t}] cannot be less than 1!")
+            sys.exit(f"Warning! Tournament size [{t}] cannot be less than 1!\n"
+                     f"Program terminated!")
 
         self.test_function = test_function
         self.n_dimension = n_dimension  # Length of array per sample. The chromosome's length
-        self.bounds = bounds  # The domain space of the test function
+        self.bounds = bounds  # The domain space/bounds of the test function
         self.num_generations = num_generations  # Number of generations to run
         self.pop_size = pop_size
         self.population = [self.Individual(GA=self) for _ in range(self.pop_size)]
@@ -63,13 +65,13 @@ class GA:
         """
         def __init__(self, GA=None, existing_chromosome=None):
             """
-            Initializes an chromosome either with a random set of genes or with existing genes. If GA is provided,
+            Initializes a chromosome either with a random set of genes or with existing genes. If GA is provided,
             the chromosome will be generated with a random set of chromosome. Either GA or existing_chromosome must be
             provided.
             :param GA: Reference of the parent class GA. If provided the individuals chromosomes are randomly
             initialized.
-            :param existing_chromosome: The chromosome to use for the chromosome's chromosome. This needs to be provided
-            if we want to define the chromosome's chromosome.
+            :param existing_chromosome: The chromosome to use for the individual. This needs to be provided
+            if we want to define the invidual's chromosome.
             """
             if GA is None and existing_chromosome is None:
                 sys.exit("Warning! Individual and GA parameter cannot be null. One of it has to be provided!")
@@ -88,7 +90,7 @@ class GA:
 
     def assess_fitness(self, chromosome: np.ndarray) -> float:
         """
-        Gives the fitness of the chromosome by passing down the chromosome to the test function.
+        Gives the fitness of the chromosome by passing down the chromosome to the test function to evaluate.
         :param chromosome: Set of genes.
         :return: Fitness value evaluated by the test function.
         """
@@ -133,7 +135,9 @@ class GA:
         """
         Mutates a chromosome using mutation rate. For each gene in the chromosome draws a number in range [0, 1]. If the
         number is less than the mutation rate then it mutates the gene by replacing it with a new random gene within the
-        bounds. If self decreasing mutation is true then
+        bounds. If the decreasing mutation is used then program slowly decreases the mutation rate per generations. In
+        the first generation the mutation rate is unchanged (mutation rate * 1), at half-point it's halved
+        (mutation rate * 0.5) and near 0 for the last generation.
         :param chromosome: Set of genes.
         :return: The mutated chromosome.
         """
