@@ -4,20 +4,6 @@ import random
 import optproblems
 import optproblems.cec2005
 
-#A particle consists of two parts:
-#   Location in space equivalent of genotype in evolutionary algorithms
-#   Velocity speed and direction at which the particle is traveling each timestep
-#Each particle starts at a random location and with a random velocity vector, often computed by choosing two random points in the space
-#and using half the vector from one to the other
-
-#Each timestep we perform the following operations:
-#   Assess the fitness of each particle and update the best-discovered locations if necessary.
-#   Determine how to Mutate. For each particle ~x, we update its velocity vector ~v by adding in, to some degree, a vector pointing
-#towards ~x∗, a vector pointing towards ~x+, and a vector pointing towards ~x!. These are augmented by a bit of random noise
-#(different random values for each dimension).
-#    Mutate each particle by moving it along its velocity vector.
-
-#Code
 
 class PSO:
     """
